@@ -5,14 +5,14 @@
 @tailwind utilities;
 
 :root {
-  --color-bg-primary: #0a0a1a;
-  --color-bg-secondary: #121226;
-  --color-bg-tertiary: #1a1a2e;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #a0a0b0;
-  --color-neon-purple: #bf00ff;
-  --color-neon-cyan: #00f0ff;
-  --color-neon-pink: #ff00aa;
+  --color-bg-primary: #000000;
+  --color-bg-secondary: #0a0a0c;
+  --color-bg-tertiary: #16181c;
+  --color-text-primary: #eff3f4;
+  --color-text-secondary: #71767b;
+  --color-accent: #ff0033;
+  --color-accent-dark: #8b0000;
+  --color-border: #2f3336;
   --sidebar-width: 280px;
 }
 
@@ -31,124 +31,143 @@ body {
   min-height: 100vh;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - minimal dark style */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-secondary);
-  border-radius: 4px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-bg-tertiary);
-  border-radius: 4px;
-  border: 1px solid var(--color-neon-purple);
+  background: #2f3336;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2a2a4e;
+  background: #404447;
 }
 
-/* Glass effect with neon border */
+/* Glass effect - X style dark panels */
 .glass {
-  background: rgba(18, 18, 38, 0.8);
+  background: rgba(22, 24, 28, 0.95);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(191, 0, 255, 0.2);
+  border: 1px solid #2f3336;
 }
 
-.glass-cyan {
-  background: rgba(18, 18, 38, 0.8);
+.glass-red {
+  background: rgba(22, 24, 28, 0.95);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 240, 255, 0.2);
+  border: 1px solid rgba(255, 0, 51, 0.2);
 }
 
-/* Neon text effects */
-.neon-text-purple {
-  color: #bf00ff;
-  text-shadow: 0 0 10px rgba(191, 0, 255, 0.8), 0 0 20px rgba(191, 0, 255, 0.6), 0 0 30px rgba(191, 0, 255, 0.4);
+/* Neon text effects - red theme */
+.neon-text-red {
+  color: #ff0033;
+  text-shadow: 0 0 10px rgba(255, 0, 51, 0.8), 0 0 20px rgba(255, 0, 51, 0.4);
+}
+
+.neon-text-crimson {
+  color: #dc143c;
+  text-shadow: 0 0 10px rgba(220, 20, 60, 0.8), 0 0 20px rgba(220, 20, 60, 0.4);
+}
+
+.neon-text-orange {
+  color: #ff4500;
+  text-shadow: 0 0 10px rgba(255, 69, 0, 0.6);
+}
+
+.neon-text-white {
+  color: #ffffff;
+}
+
+/* Keep some accent colors for stats */
+.neon-text-green {
+  color: #00c853;
 }
 
 .neon-text-cyan {
-  color: #00f0ff;
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.8), 0 0 20px rgba(0, 240, 255, 0.6), 0 0 30px rgba(0, 240, 255, 0.4);
+  color: #00bcd4;
 }
 
-.neon-text-green {
-  color: #00ff88;
-  text-shadow: 0 0 10px rgba(0, 255, 136, 0.8), 0 0 20px rgba(0, 255, 136, 0.6);
+.neon-text-purple {
+  color: #ff0033;
+  text-shadow: 0 0 10px rgba(255, 0, 51, 0.6);
 }
 
-.neon-text-red {
-  color: #ff0044;
-  text-shadow: 0 0 10px rgba(255, 0, 68, 0.8), 0 0 20px rgba(255, 0, 68, 0.6);
+.neon-text-pink {
+  color: #ff0033;
 }
 
-/* Gradient backgrounds */
+/* Gradient backgrounds - dark aggressive */
 .bg-racing-gradient {
-  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #2e1065 100%);
+  background: linear-gradient(180deg, #000000 0%, #0a0a0c 50%, #000000 100%);
 }
 
 .bg-neon-gradient {
-  background: linear-gradient(135deg, rgba(191, 0, 255, 0.1) 0%, rgba(0, 240, 255, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(255, 0, 51, 0.05) 0%, rgba(139, 0, 0, 0.05) 100%);
 }
 
-/* Card styles */
+/* Card styles - X inspired */
 .card-racing {
-  @apply p-6 rounded-xl glass transition-all duration-300;
+  @apply p-6 rounded-xl glass transition-all duration-200;
 }
 
 .card-racing:hover {
-  @apply shadow-neon-purple;
-  border-color: rgba(191, 0, 255, 0.5);
+  background: rgba(32, 35, 39, 0.95);
+  border-color: #404447;
 }
 
-/* Button styles */
+/* Button styles - aggressive red */
 .btn-neon {
-  @apply px-6 py-3 bg-gradient-to-r from-neon-purple to-neon-cyan text-white rounded-lg font-display font-semibold tracking-wider uppercase transition-all duration-300;
+  @apply px-6 py-3 bg-neon-red text-white rounded-full font-display font-semibold tracking-wider transition-all duration-200;
 }
 
 .btn-neon:hover {
-  @apply shadow-neon-purple;
-  transform: translateY(-2px);
+  @apply shadow-neon-red;
+  background: #e6002e;
 }
 
 .btn-outline-neon {
-  @apply px-6 py-3 bg-transparent border-2 border-neon-purple text-neon-purple rounded-lg font-display font-semibold tracking-wider uppercase transition-all duration-300;
+  @apply px-6 py-3 bg-transparent border border-x-darkgray text-white rounded-full font-display font-semibold tracking-wider transition-all duration-200;
 }
 
 .btn-outline-neon:hover {
-  @apply bg-neon-purple/20 shadow-neon-purple;
+  @apply bg-x-hover border-x-gray;
 }
 
-/* Input styles */
+/* Input styles - X style */
 .input-racing {
-  @apply w-full px-4 py-3 bg-dark-300 border border-racing-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neon-purple focus:shadow-neon-purple transition-all duration-200;
+  @apply w-full px-4 py-3 bg-transparent border border-x-border rounded-lg text-white placeholder-x-gray focus:outline-none focus:border-neon-red transition-all duration-200;
   font-family: 'Rajdhani', sans-serif;
 }
 
-/* Navigation item */
+.input-racing:focus {
+  box-shadow: 0 0 0 1px #ff0033;
+}
+
+/* Navigation item - X style */
 .nav-item {
-  @apply flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer;
+  @apply flex items-center gap-4 px-4 py-3 rounded-full text-x-lightgray hover:bg-x-hover transition-all duration-200 cursor-pointer;
 }
 
 .nav-item.active {
-  @apply text-neon-cyan bg-neon-cyan/10 border-l-2 border-neon-cyan;
+  @apply text-white font-bold;
 }
 
 /* Stats display */
 .stat-box {
-  @apply p-4 rounded-xl bg-dark-300 border border-racing-800 text-center;
+  @apply p-4 rounded-xl bg-dark-300 border border-x-border text-center;
 }
 
 .stat-value {
-  @apply text-3xl font-display font-bold;
+  @apply text-3xl font-display font-bold text-white;
 }
 
 .stat-label {
-  @apply text-sm text-gray-400 uppercase tracking-wider;
+  @apply text-sm text-x-gray uppercase tracking-wider;
 }
 
 /* Performance badge */
@@ -168,45 +187,79 @@ body {
   @apply bg-orange-600/20 text-orange-400 border border-orange-600/30;
 }
 
-/* Speedometer styles */
+/* Video container */
+.video-container {
+  @apply relative aspect-video bg-black rounded-xl overflow-hidden;
+}
+
+/* Car type badges - muted colors */
+.car-badge-jdm {
+  @apply bg-red-500/10 text-red-400 border border-red-500/20;
+}
+
+.car-badge-euro {
+  @apply bg-blue-500/10 text-blue-400 border border-blue-500/20;
+}
+
+.car-badge-muscle {
+  @apply bg-orange-500/10 text-orange-400 border border-orange-500/20;
+}
+
+.car-badge-exotic {
+  @apply bg-purple-500/10 text-purple-400 border border-purple-500/20;
+}
+
+/* X-style post/card hover */
+.x-card {
+  @apply border-b border-x-border transition-colors duration-200;
+}
+
+.x-card:hover {
+  @apply bg-x-hover;
+}
+
+/* Red accent line */
+.accent-line {
+  @apply h-1 w-full bg-gradient-to-r from-neon-red via-neon-crimson to-transparent;
+}
+
+/* Verified badge */
+.verified-badge {
+  @apply inline-flex items-center justify-center w-5 h-5 bg-neon-red rounded-full;
+}
+
+/* Animation utilities */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+/* Speedometer - red theme */
 .speedometer-ring {
   stroke-dasharray: 283;
   stroke-dashoffset: 283;
   transition: stroke-dashoffset 0.5s ease-out;
 }
 
-/* Animation delays */
-.stagger-1 { animation-delay: 0.1s; }
-.stagger-2 { animation-delay: 0.2s; }
-.stagger-3 { animation-delay: 0.3s; }
-.stagger-4 { animation-delay: 0.4s; }
-.stagger-5 { animation-delay: 0.5s; }
-
-/* Video container */
-.video-container {
-  @apply relative aspect-video bg-dark-400 rounded-xl overflow-hidden;
+/* Selection color */
+::selection {
+  background: rgba(255, 0, 51, 0.3);
+  color: white;
 }
 
-.video-container::before {
-  content: '';
-  @apply absolute inset-0 pointer-events-none;
-  background: linear-gradient(to bottom, transparent 80%, rgba(10, 10, 26, 0.8) 100%);
-  z-index: 1;
+/* Focus ring */
+*:focus-visible {
+  outline: 2px solid #ff0033;
+  outline-offset: 2px;
 }
 
-/* Car type badges */
-.car-badge-jdm {
-  @apply bg-red-500/20 text-red-400 border border-red-500/30;
+/* Link styles */
+a {
+  @apply transition-colors duration-200;
 }
 
-.car-badge-euro {
-  @apply bg-blue-500/20 text-blue-400 border border-blue-500/30;
-}
-
-.car-badge-muscle {
-  @apply bg-orange-500/20 text-orange-400 border border-orange-500/30;
-}
-
-.car-badge-exotic {
-  @apply bg-purple-500/20 text-purple-400 border border-purple-500/30;
+/* Divider */
+.divider {
+  @apply h-px w-full bg-x-border;
 }

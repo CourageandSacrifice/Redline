@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Gauge, Mail, Lock, ArrowRight, Loader2, Zap } from 'lucide-react';
+import { Gauge, Mail, Lock, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -33,161 +33,161 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-black">
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-dark-500 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
         {/* Animated background elements */}
         <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-neon-purple/20 rounded-full blur-3xl animate-pulse-neon" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-neon-cyan/10 rounded-full blur-3xl animate-pulse-neon" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-neon-purple/20 rounded-full" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-neon-cyan/10 rounded-full" />
+          <div className="absolute top-20 left-20 w-96 h-96 bg-neon-red/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-20 w-72 h-72 bg-neon-red/10 rounded-full blur-3xl animate-pulse-red" />
           
-          {/* Racing stripes */}
-          <div className="absolute top-0 left-1/4 w-1 h-full bg-gradient-to-b from-transparent via-neon-purple/30 to-transparent" />
-          <div className="absolute top-0 left-1/3 w-0.5 h-full bg-gradient-to-b from-transparent via-neon-cyan/20 to-transparent" />
+          {/* Grid pattern */}
+          <div className="absolute inset-0 opacity-5" style={{
+            backgroundImage: 'linear-gradient(#ff0033 1px, transparent 1px), linear-gradient(90deg, #ff0033 1px, transparent 1px)',
+            backgroundSize: '50px 50px'
+          }} />
         </div>
         
-        <div className="relative z-10 flex flex-col justify-center px-16">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="p-3 bg-gradient-to-br from-neon-purple to-neon-cyan rounded-xl shadow-neon-purple">
-              <Gauge className="w-8 h-8 text-white" />
+        <div className="relative z-10 px-16">
+          {/* Large X-style logo */}
+          <div className="mb-12">
+            <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center shadow-neon-red">
+              <Gauge className="w-14 h-14 text-black" />
             </div>
-            <span className="text-3xl font-display font-bold text-white tracking-wider">REDLINE</span>
           </div>
           
-          <h1 className="text-5xl font-display font-bold text-white mb-6 leading-tight tracking-wide">
-            PUSH THE
-            <br />
-            <span className="neon-text-purple">LIMITS</span>
+          <h1 className="text-7xl font-display font-bold text-white mb-6 tracking-tight">
+            REDLINE
           </h1>
           
-          <p className="text-xl text-gray-400 max-w-md leading-relaxed">
-            Share your racing clips, track your 0-60 and quarter mile times, and compete on the leaderboards.
+          <p className="text-2xl text-x-gray max-w-md">
+            The underground racing community.
           </p>
-          
-          <div className="mt-12 flex items-center gap-8">
-            <div className="text-center">
-              <div className="text-3xl font-display font-bold neon-text-cyan">10K+</div>
-              <div className="text-sm text-gray-500 uppercase tracking-wider">Clips</div>
-            </div>
-            <div className="w-px h-12 bg-racing-700" />
-            <div className="text-center">
-              <div className="text-3xl font-display font-bold neon-text-purple">5K+</div>
-              <div className="text-sm text-gray-500 uppercase tracking-wider">Racers</div>
-            </div>
-            <div className="w-px h-12 bg-racing-700" />
-            <div className="text-center">
-              <div className="text-3xl font-display font-bold neon-text-green">2.1s</div>
-              <div className="text-sm text-gray-500 uppercase tracking-wider">Record 0-60</div>
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Right side - Login form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-dark-600">
+      <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md animate-fade-in">
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="p-3 bg-gradient-to-br from-neon-purple to-neon-cyan rounded-xl shadow-neon-purple">
-              <Gauge className="w-8 h-8 text-white" />
+          <div className="lg:hidden flex items-center gap-3 mb-12 justify-center">
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
+              <Gauge className="w-7 h-7 text-black" />
             </div>
             <span className="text-2xl font-display font-bold text-white tracking-wider">REDLINE</span>
           </div>
 
-          <div className="glass rounded-2xl p-8">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-display font-bold text-white mb-2 tracking-wide">
-                WELCOME BACK
-              </h2>
-              <p className="text-gray-400">
-                Sign in to access your garage
-              </p>
+          <div className="mb-8">
+            <h2 className="text-3xl font-display font-bold text-white mb-2">
+              Sign in
+            </h2>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-5">
+            {error && (
+              <div className="p-4 bg-neon-red/10 border border-neon-red/30 rounded-xl text-neon-red text-sm animate-fade-in">
+                {error}
+              </div>
+            )}
+
+            <div>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-x-gray" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-racing pl-12 py-4 rounded-xl"
+                  placeholder="Email"
+                  required
+                />
+              </div>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-6">
-              {error && (
-                <div className="p-4 bg-neon-red/10 border border-neon-red/30 rounded-lg text-neon-red text-sm animate-fade-in">
-                  {error}
-                </div>
+            <div>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-x-gray" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input-racing pl-12 py-4 rounded-xl"
+                  placeholder="Password"
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-white text-black rounded-full font-display font-bold text-lg tracking-wider hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Signing in...
+                </span>
+              ) : (
+                'Sign in'
               )}
+            </button>
+          </form>
 
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="input-racing pl-12"
-                    placeholder="racer@streetpulse.com"
-                    required
-                  />
-                </div>
+          <div className="mt-10">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-x-border"></div>
               </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="input-racing pl-12"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-neon w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    LAUNCHING...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5" />
-                    SIGN IN
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="mt-8 pt-6 border-t border-racing-700">
-              <p className="text-center text-sm text-gray-500 mb-3">
-                Demo accounts:
-              </p>
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between p-2 bg-dark-400 rounded-lg">
-                  <span className="text-gray-400">Admin:</span>
-                  <span className="text-neon-cyan font-mono">admin@redline.com</span>
-                </div>
-                <div className="flex justify-between p-2 bg-dark-400 rounded-lg">
-                  <span className="text-gray-400">Creator:</span>
-                  <span className="text-neon-cyan font-mono">creator@redline.com</span>
-                </div>
-                <div className="flex justify-between p-2 bg-dark-400 rounded-lg">
-                  <span className="text-gray-400">Viewer:</span>
-                  <span className="text-neon-cyan font-mono">viewer@redline.com</span>
-                </div>
-                <p className="text-center text-gray-500 mt-2">
-                  Password: <span className="text-neon-purple font-mono">password123</span>
-                </p>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-black text-x-gray">Demo accounts</span>
               </div>
             </div>
+            
+            <div className="mt-6 space-y-3">
+              <button
+                onClick={() => { setEmail('admin@redline.com'); setPassword('password123'); }}
+                className="w-full p-3 border border-x-border rounded-xl text-left hover:bg-x-hover transition-colors group"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-white font-semibold">Admin</span>
+                    <span className="text-x-gray ml-2">admin@redline.com</span>
+                  </div>
+                  <span className="text-neon-red opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                </div>
+              </button>
+              
+              <button
+                onClick={() => { setEmail('creator@redline.com'); setPassword('password123'); }}
+                className="w-full p-3 border border-x-border rounded-xl text-left hover:bg-x-hover transition-colors group"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-white font-semibold">Creator</span>
+                    <span className="text-x-gray ml-2">creator@redline.com</span>
+                  </div>
+                  <span className="text-neon-red opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                </div>
+              </button>
+              
+              <button
+                onClick={() => { setEmail('viewer@redline.com'); setPassword('password123'); }}
+                className="w-full p-3 border border-x-border rounded-xl text-left hover:bg-x-hover transition-colors group"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-white font-semibold">Viewer</span>
+                    <span className="text-x-gray ml-2">viewer@redline.com</span>
+                  </div>
+                  <span className="text-neon-red opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                </div>
+              </button>
+            </div>
+            
+            <p className="text-center text-x-gray text-sm mt-4">
+              Password: <span className="text-white font-mono">password123</span>
+            </p>
           </div>
         </div>
       </div>

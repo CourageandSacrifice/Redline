@@ -8,37 +8,46 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Neon racing palette
+        // Aggressive red/black palette
         'neon': {
-          purple: '#bf00ff',
-          cyan: '#00f0ff',
-          pink: '#ff00aa',
-          green: '#00ff88',
-          orange: '#ff6600',
-          red: '#ff0044',
-        },
-        'racing': {
-          50: '#f5f3ff',
-          100: '#ede9fe',
-          200: '#ddd6fe',
-          300: '#c4b5fd',
-          400: '#a78bfa',
-          500: '#8b5cf6',
-          600: '#7c3aed',
-          700: '#6d28d9',
-          800: '#5b21b6',
-          900: '#4c1d95',
-          950: '#2e1065',
+          red: '#ff0033',
+          crimson: '#dc143c',
+          blood: '#8b0000',
+          orange: '#ff4500',
+          white: '#ffffff',
+          gray: '#71767b',
         },
         'dark': {
-          100: '#1a1a2e',
-          200: '#16162a',
-          300: '#121226',
-          400: '#0f0f23',
-          500: '#0a0a1a',
-          600: '#050510',
-          700: '#020208',
+          50: '#2f3336',
+          100: '#202327',
+          200: '#1d1f23',
+          300: '#16181c',
+          400: '#12141a',
+          500: '#0a0a0c',
+          600: '#000000',
+          700: '#000000',
         },
+        'racing': {
+          50: '#3a3a3a',
+          100: '#2d2d2d',
+          200: '#262626',
+          300: '#1f1f1f',
+          400: '#1a1a1a',
+          500: '#141414',
+          600: '#0f0f0f',
+          700: '#0a0a0a',
+          800: '#050505',
+          900: '#000000',
+          950: '#000000',
+        },
+        // X-style grays
+        'x': {
+          gray: '#71767b',
+          lightgray: '#eff3f4',
+          darkgray: '#2f3336',
+          border: '#2f3336',
+          hover: '#1d1f23',
+        }
       },
       fontFamily: {
         'display': ['Orbitron', 'sans-serif'],
@@ -46,19 +55,17 @@ module.exports = {
         'mono': ['JetBrains Mono', 'monospace'],
       },
       boxShadow: {
-        'neon-purple': '0 0 20px rgba(191, 0, 255, 0.5), 0 0 40px rgba(191, 0, 255, 0.3)',
-        'neon-cyan': '0 0 20px rgba(0, 240, 255, 0.5), 0 0 40px rgba(0, 240, 255, 0.3)',
-        'neon-pink': '0 0 20px rgba(255, 0, 170, 0.5)',
-        'neon-green': '0 0 20px rgba(0, 255, 136, 0.5)',
-        'neon-red': '0 0 20px rgba(255, 0, 68, 0.5)',
+        'neon-red': '0 0 20px rgba(255, 0, 51, 0.5), 0 0 40px rgba(255, 0, 51, 0.3)',
+        'neon-crimson': '0 0 20px rgba(220, 20, 60, 0.5), 0 0 40px rgba(220, 20, 60, 0.3)',
+        'neon-orange': '0 0 20px rgba(255, 69, 0, 0.5)',
+        'glow-red': '0 0 30px rgba(255, 0, 51, 0.4)',
       },
       animation: {
-        'fade-in': 'fadeIn 0.5s ease-out',
-        'slide-up': 'slideUp 0.5s ease-out',
-        'slide-in-left': 'slideInLeft 0.3s ease-out',
-        'pulse-neon': 'pulseNeon 2s ease-in-out infinite',
-        'glow': 'glow 2s ease-in-out infinite alternate',
-        'speedometer': 'speedometer 0.3s ease-out',
+        'fade-in': 'fadeIn 0.3s ease-out',
+        'slide-up': 'slideUp 0.3s ease-out',
+        'slide-in-left': 'slideInLeft 0.2s ease-out',
+        'pulse-red': 'pulseRed 2s ease-in-out infinite',
+        'glow': 'glowRed 2s ease-in-out infinite alternate',
       },
       keyframes: {
         fadeIn: {
@@ -66,24 +73,20 @@ module.exports = {
           '100%': { opacity: '1' },
         },
         slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         slideInLeft: {
-          '0%': { opacity: '0', transform: 'translateX(-20px)' },
+          '0%': { opacity: '0', transform: 'translateX(-10px)' },
           '100%': { opacity: '1', transform: 'translateX(0)' },
         },
-        pulseNeon: {
+        pulseRed: {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.5' },
         },
-        glow: {
-          '0%': { boxShadow: '0 0 20px rgba(191, 0, 255, 0.5)' },
-          '100%': { boxShadow: '0 0 30px rgba(0, 240, 255, 0.7)' },
-        },
-        speedometer: {
-          '0%': { transform: 'rotate(-135deg)' },
-          '100%': { transform: 'rotate(var(--needle-rotation))' },
+        glowRed: {
+          '0%': { boxShadow: '0 0 20px rgba(255, 0, 51, 0.3)' },
+          '100%': { boxShadow: '0 0 30px rgba(255, 0, 51, 0.6)' },
         },
       },
     },

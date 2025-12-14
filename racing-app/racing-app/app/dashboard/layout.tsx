@@ -70,11 +70,11 @@ export default async function DashboardLayout({
     : channels || [];
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-black">
       <Sidebar channels={transformedChannels} userRole={profile?.role || 'viewer'} />
-      <div className="flex-1 flex flex-col ml-[280px]">
+      <div className="flex-1 flex flex-col ml-[275px]">
         <Header user={profile || { id: user.id, email: user.email!, username: user.email!.split('@')[0], role: 'viewer' }} />
-        <main className="flex-1 p-8 overflow-auto">
+        <main className="flex-1 p-6 overflow-auto">
           {children}
         </main>
       </div>
