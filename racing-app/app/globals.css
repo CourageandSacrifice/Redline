@@ -113,7 +113,7 @@ body {
 /* Input styles */
 .input-field {
   @apply w-full px-4 py-3 rounded-xl transition-all duration-200;
-  background: transparent;
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
   color: var(--text-primary);
   font-family: 'Rajdhani', sans-serif;
@@ -127,6 +127,38 @@ body {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+}
+
+/* Alias for old class name */
+.input-racing {
+  @apply w-full px-4 py-3 rounded-xl transition-all duration-200;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: 'Rajdhani', sans-serif;
+}
+
+.input-racing::placeholder {
+  color: var(--text-secondary);
+}
+
+.input-racing:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+}
+
+/* Select dropdown styling */
+select.input-racing,
+select.input-field {
+  background: var(--bg-secondary);
+  cursor: pointer;
+}
+
+select.input-racing option,
+select.input-field option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 /* Stats cards */
