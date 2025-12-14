@@ -14,8 +14,10 @@ import {
   Settings,
   Calendar,
   MapPin,
-  Cloud
+  Cloud,
+  MessageCircle
 } from 'lucide-react';
+import Comments from '@/components/Comments';
 
 interface ClipPageProps {
   params: {
@@ -391,12 +393,17 @@ export default async function ClipPage({ params }: ClipPageProps) {
         </div>
       </div>
 
+      {/* Comments Section */}
+      <div className="mt-8">
+        <Comments clipId={params.clipId} commentCount={clip.comment_count || 0} />
+      </div>
+
       {/* Bottom navigation */}
-      <div className="mt-8 pt-6 border-t border-racing-800 flex items-center justify-between">
+      <div className="mt-8 pt-6 border-t border-x-border flex items-center justify-between">
         {prevClip ? (
           <Link
             href={`/dashboard/channels/${params.channelId}/collections/${params.collectionId}/clips/${prevClip.id}`}
-            className="btn-outline-neon flex items-center gap-2"
+            className="btn-outline flex items-center gap-2"
           >
             <ChevronLeft className="w-5 h-5" />
             PREVIOUS
@@ -408,7 +415,7 @@ export default async function ClipPage({ params }: ClipPageProps) {
         {nextClip ? (
           <Link
             href={`/dashboard/channels/${params.channelId}/collections/${params.collectionId}/clips/${nextClip.id}`}
-            className="btn-neon flex items-center gap-2"
+            className="btn-accent flex items-center gap-2"
           >
             NEXT
             <ChevronRight className="w-5 h-5" />
@@ -416,7 +423,7 @@ export default async function ClipPage({ params }: ClipPageProps) {
         ) : (
           <Link
             href={`/dashboard/channels/${params.channelId}`}
-            className="btn-neon flex items-center gap-2"
+            className="btn-accent flex items-center gap-2"
           >
             BACK TO CHANNEL
           </Link>
