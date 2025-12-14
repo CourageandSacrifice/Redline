@@ -11,11 +11,14 @@ import {
   Play,
   Trophy,
   Timer,
-  Settings,
-  Users,
-  BarChart3,
   Video,
-  Flame
+  Flame,
+  Upload,
+  Scissors,
+  MoreHorizontal,
+  User,
+  Settings,
+  Search
 } from 'lucide-react';
 
 interface Channel {
@@ -48,7 +51,6 @@ export default function Sidebar({ channels, userRole }: SidebarProps) {
   const [expandedChannels, setExpandedChannels] = useState<string[]>([]);
   const [expandedCollections, setExpandedCollections] = useState<string[]>([]);
 
-  // Extract current IDs from pathname
   const pathParts = pathname.split('/');
   const currentChannelId = pathParts[3];
   const currentCollectionId = pathParts[5];
@@ -70,29 +72,25 @@ export default function Sidebar({ channels, userRole }: SidebarProps) {
     );
   };
 
-  const navItems = [
+  const mainNavItems = [
     { href: '/dashboard', icon: Home, label: 'Home' },
-    { href: '/dashboard/explore', icon: Flame, label: 'Explore' },
+    { href: '/dashboard/feed', icon: Flame, label: 'Feed' },
     { href: '/speedometer', icon: Timer, label: 'Speedometer' },
     { href: '/dashboard/leaderboard', icon: Trophy, label: 'Leaderboard' },
   ];
 
   const creatorItems = [
+    { href: '/dashboard/upload', icon: Upload, label: 'Upload' },
+    { href: '/dashboard/editor', icon: Scissors, label: 'Editor' },
     { href: '/dashboard/my-channel', icon: Video, label: 'My Channel' },
-    { href: '/dashboard/analytics', icon: BarChart3, label: 'Analytics' },
-  ];
-
-  const adminItems = [
-    { href: '/dashboard/users', icon: Users, label: 'Users' },
-    { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
   ];
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-[280px] bg-dark-600 border-r border-racing-900 flex flex-col z-40">
+    <aside className="fixed left-0 top-0 bottom-0 w-[275px] sidebar-panel flex flex-col z-40">
       {/* Logo */}
-      <div className="p-6 border-b border-racing-900">
-        <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-neon-purple to-neon-red rounded-xl shadow-neon-purple">
+      <div className="p-4">
+        <Link href="/dashboard" className="inline-flex items-center gap-3 p-2 rounded-full hover:bg-accent/10 transition-colors">
+          <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center">
             <Gauge className="w-6 h-6 text-white" />
           </div>
           <span className="text-xl font-display font-bold text-white tracking-wider">REDLINE</span>
@@ -100,35 +98,60 @@ export default function Sidebar({ channels, userRole }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-4 space-y-6">
+      <nav className="flex-1 overflow-y-auto px-3">
         {/* Main nav */}
-        <div>
-          <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider px-4 mb-3">
-            Navigation
-          </div>
-          <div className="space-y-1">
-            {navItems.map(item => {
+        <div className="space-y-1">
+          {mainNavItems.map(item => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`nav-item ${isActive ? 'active bg-accent/10' : ''}`}
+              >
+                <Icon className={`w-6 h-6 ${isActive ? 'text-accent' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+                <span className="text-lg">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Creator section */}
+        {(userRole === 'creator' || userRole === 'admin') && (
+          <div className="mt-4 pt-4 border-t border-x-border">
+            {creatorItems.map(item => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`nav-item ${isActive ? 'active' : ''}`}
+                  className={`nav-item ${isActive ? 'active bg-accent/10' : ''}`}
                 >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-semibold">{item.label}</span>
+                  <Icon className={`w-6 h-6 ${isActive ? 'text-accent' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="text-lg">{item.label}</span>
                 </Link>
               );
             })}
           </div>
+        )}
+
+        {/* Post button */}
+        <div className="mt-6 px-2">
+          <Link
+            href="/dashboard/upload"
+            className="w-full py-3.5 bg-accent text-white rounded-full font-display font-bold text-lg tracking-wide flex items-center justify-center hover:bg-accent-light transition-colors glow-accent"
+          >
+            Post
+          </Link>
         </div>
 
-        {/* Channels */}
+        {/* Subscribed channels */}
         {channels.length > 0 && (
-          <div>
-            <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider px-4 mb-3">
-              Subscribed
+          <div className="mt-6 pt-4 border-t border-x-border">
+            <div className="px-4 mb-3">
+              <span className="text-x-gray text-sm font-semibold uppercase tracking-wider">Subscribed</span>
             </div>
             <div className="space-y-1">
               {channels.map(channel => {
@@ -139,26 +162,25 @@ export default function Sidebar({ channels, userRole }: SidebarProps) {
                   <div key={channel.id}>
                     <button
                       onClick={() => toggleChannel(channel.id)}
-                      className={`nav-item w-full justify-between ${currentChannelId === channel.id ? 'text-neon-purple' : ''}`}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors ${
+                        currentChannelId === channel.id ? 'bg-accent/10' : 'hover:bg-white/5'
+                      }`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-6 h-6 rounded bg-gradient-to-br from-neon-purple to-neon-cyan flex items-center justify-center text-xs font-bold text-white">
-                          {channel.avatar_url ? (
-                            <img src={channel.avatar_url} alt="" className="w-full h-full rounded object-cover" />
-                          ) : (
-                            channel.name.charAt(0).toUpperCase()
-                          )}
-                        </div>
-                        <span className="truncate font-semibold">{channel.name}</span>
+                      <div className="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center text-sm font-bold text-white overflow-hidden">
+                        {channel.avatar_url ? (
+                          <img src={channel.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          channel.name.charAt(0).toUpperCase()
+                        )}
                       </div>
+                      <span className="flex-1 text-left text-x-white truncate">{channel.name}</span>
                       <ChevronDown 
-                        className={`w-4 h-4 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                        className={`w-4 h-4 text-x-gray transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
                       />
                     </button>
 
-                    {/* Collections dropdown */}
                     {isExpanded && sortedCollections.length > 0 && (
-                      <div className="ml-4 mt-1 space-y-1 animate-slide-in-left">
+                      <div className="ml-6 mt-1 space-y-0.5 animate-fade-in">
                         {sortedCollections.map(collection => {
                           const isCollectionExpanded = expandedCollections.includes(collection.id) || currentCollectionId === collection.id;
                           const sortedClips = collection.clips?.sort((a, b) => a.order_index - b.order_index) || [];
@@ -167,37 +189,32 @@ export default function Sidebar({ channels, userRole }: SidebarProps) {
                             <div key={collection.id}>
                               <button
                                 onClick={() => toggleCollection(collection.id)}
-                                className={`nav-item w-full text-sm py-2 ${currentCollectionId === collection.id ? 'text-neon-cyan' : ''}`}
+                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                                  currentCollectionId === collection.id ? 'text-accent' : 'text-x-gray hover:text-x-white'
+                                }`}
                               >
                                 <ChevronRight 
-                                  className={`w-4 h-4 flex-shrink-0 transition-transform ${isCollectionExpanded ? 'rotate-90' : ''}`}
+                                  className={`w-4 h-4 transition-transform ${isCollectionExpanded ? 'rotate-90' : ''}`}
                                 />
-                                <span className="truncate flex-1 text-left">{collection.title}</span>
-                                <span className="text-xs text-gray-600">{sortedClips.length}</span>
+                                <span className="truncate">{collection.title}</span>
                               </button>
 
-                              {/* Clips list */}
                               {isCollectionExpanded && sortedClips.length > 0 && (
-                                <div className="ml-4 mt-1 space-y-0.5 border-l border-racing-800 pl-3 animate-slide-in-left">
-                                  {sortedClips.map(clip => {
-                                    const isClipActive = currentClipId === clip.id;
-                                    return (
-                                      <Link
-                                        key={clip.id}
-                                        href={`/dashboard/channels/${channel.id}/collections/${collection.id}/clips/${clip.id}`}
-                                        className={`block py-2 px-3 text-sm rounded-lg transition-colors ${
-                                          isClipActive 
-                                            ? 'bg-neon-purple/20 text-neon-purple border-l-2 border-neon-purple -ml-[13px] pl-[23px]' 
-                                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                        }`}
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          <Play className="w-3 h-3 flex-shrink-0" />
-                                          <span className="truncate">{clip.title}</span>
-                                        </div>
-                                      </Link>
-                                    );
-                                  })}
+                                <div className="ml-4 border-l border-x-border pl-3 animate-fade-in">
+                                  {sortedClips.map(clip => (
+                                    <Link
+                                      key={clip.id}
+                                      href={`/dashboard/channels/${channel.id}/collections/${collection.id}/clips/${clip.id}`}
+                                      className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                                        currentClipId === clip.id 
+                                          ? 'text-accent bg-accent/10' 
+                                          : 'text-x-gray hover:text-x-white hover:bg-white/5'
+                                      }`}
+                                    >
+                                      <Play className="w-3 h-3" />
+                                      <span className="truncate">{clip.title}</span>
+                                    </Link>
+                                  ))}
                                 </div>
                               )}
                             </div>
@@ -211,77 +228,20 @@ export default function Sidebar({ channels, userRole }: SidebarProps) {
             </div>
           </div>
         )}
-
-        {/* Creator section */}
-        {(userRole === 'creator' || userRole === 'admin') && (
-          <div>
-            <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider px-4 mb-3">
-              Creator
-            </div>
-            <div className="space-y-1">
-              {creatorItems.map(item => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`nav-item ${isActive ? 'active' : ''}`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-semibold">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Admin section */}
-        {userRole === 'admin' && (
-          <div>
-            <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider px-4 mb-3">
-              Admin
-            </div>
-            <div className="space-y-1">
-              {adminItems.map(item => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`nav-item ${isActive ? 'active' : ''}`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-semibold">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </nav>
 
-      {/* Speedometer promo */}
-      <div className="p-4 border-t border-racing-900">
-        <Link 
-          href="/speedometer"
-          className="block glass rounded-xl p-4 hover:shadow-neon-purple transition-all"
-        >
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-neon-green/20 rounded-lg">
-              <Timer className="w-5 h-5 text-neon-green" />
-            </div>
-            <div>
-              <div className="text-sm font-display font-semibold text-white">GPS TIMER</div>
-              <div className="text-xs text-gray-500">Track your runs</div>
-            </div>
+      {/* Bottom section - User */}
+      <div className="p-4 border-t border-x-border">
+        <button className="w-full flex items-center gap-3 p-3 rounded-full hover:bg-white/5 transition-colors">
+          <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white font-bold">
+            R
           </div>
-          <div className="text-xs text-gray-400">
-            0-60, 0-100, 1/4 mile times
+          <div className="flex-1 text-left">
+            <div className="text-x-white font-semibold text-sm">Redline User</div>
+            <div className="text-x-gray text-sm">@{userRole}</div>
           </div>
-        </Link>
+          <MoreHorizontal className="w-5 h-5 text-x-gray" />
+        </button>
       </div>
     </aside>
   );
