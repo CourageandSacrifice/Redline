@@ -4,7 +4,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Gauge, Mail, Lock, Loader2, Chrome, Apple } from 'lucide-react';
+import { 
+  Gauge, 
+  Mail, 
+  Lock, 
+  User,
+  Loader2,
+  Chrome,
+  Apple,
+  Tv,
+  MessageCircle
+} from 'lucide-react';
 
 // Discord icon component
 const DiscordIcon = ({ className }: { className?: string }) => (
@@ -20,31 +30,50 @@ const TwitchIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    const { error } = await supabase.auth.signInWithPassword({
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      setLoading(false);
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          username: username,
+          role: 'creator', // Default new users to creator
+        },
+      },
     });
 
     if (error) {
       setError(error.message);
       setLoading(false);
-    } else {
-      router.push('/dashboard');
-      router.refresh();
+    } else if (data.user) {
+      // Check if email confirmation is required
+      if (data.session) {
+        router.push('/dashboard');
+        router.refresh();
+      } else {
+        setError('Check your email for a confirmation link!');
+        setLoading(false);
+      }
     }
   };
 
@@ -93,12 +122,12 @@ export default function LoginPage() {
           </h1>
           
           <p className="text-xl text-x-lightgray">
-            The underground racing community
+            Join the underground racing community
           </p>
         </div>
       </div>
 
-      {/* Right side - Login form */}
+      {/* Right side - Signup form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md animate-fade-in">
           {/* Mobile logo */}
@@ -111,9 +140,9 @@ export default function LoginPage() {
 
           <div className="mb-8">
             <h2 className="text-3xl font-display font-bold text-white mb-2">
-              Sign in
+              Create account
             </h2>
-            <p className="text-x-gray">Welcome back to Redline</p>
+            <p className="text-x-gray">Join the community today</p>
           </div>
 
           {/* Social login buttons */}
@@ -149,12 +178,30 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSignup} className="space-y-4">
             {error && (
-              <div className="p-4 bg-accent/10 border border-accent/30 rounded-xl text-accent text-sm animate-fade-in">
+              <div className={`p-4 rounded-xl text-sm animate-fade-in ${
+                error.includes('Check your email') 
+                  ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                  : 'bg-accent/10 border border-accent/30 text-accent'
+              }`}>
                 {error}
               </div>
             )}
+
+            <div>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-x-gray" />
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="input-field pl-12 py-4"
+                  placeholder="Username"
+                  required
+                />
+              </div>
+            </div>
 
             <div>
               <div className="relative">
@@ -178,8 +225,9 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input-field pl-12 py-4"
-                  placeholder="Password"
+                  placeholder="Password (min 6 characters)"
                   required
+                  minLength={6}
                 />
               </div>
             </div>
@@ -192,57 +240,24 @@ export default function LoginPage() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Signing in...
+                  Creating account...
                 </span>
               ) : (
-                'Sign in'
+                'Create account'
               )}
             </button>
           </form>
 
           <p className="mt-6 text-center text-x-gray">
-            Don't have an account?{' '}
-            <Link href="/auth/signup" className="text-accent hover:underline font-semibold">
-              Sign up
+            Already have an account?{' '}
+            <Link href="/auth/login" className="text-accent hover:underline font-semibold">
+              Sign in
             </Link>
           </p>
 
-          <div className="mt-8">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-x-border"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 text-x-gray" style={{ background: '#15202b' }}>Demo accounts</span>
-              </div>
-            </div>
-            
-            <div className="mt-4 space-y-2">
-              {[
-                { label: 'Admin', email: 'admin@redline.com' },
-                { label: 'Creator', email: 'creator@redline.com' },
-                { label: 'Viewer', email: 'viewer@redline.com' },
-              ].map((account) => (
-                <button
-                  key={account.email}
-                  onClick={() => { setEmail(account.email); setPassword('password123'); }}
-                  className="w-full p-3 rounded-xl text-left hover:bg-white/5 transition-colors group border border-x-border"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-white font-semibold">{account.label}</span>
-                      <span className="text-x-gray ml-2 text-sm">{account.email}</span>
-                    </div>
-                    <span className="text-accent opacity-0 group-hover:opacity-100 transition-opacity">→</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-            
-            <p className="text-center text-x-gray text-sm mt-3">
-              Password: <span className="text-x-white font-mono">password123</span>
-            </p>
-          </div>
+          <p className="mt-6 text-center text-x-gray text-xs">
+            By creating an account, you agree to our Terms of Service and Privacy Policy
+          </p>
         </div>
       </div>
     </div>

@@ -13,13 +13,13 @@ import {
   Check,
   X,
   Plus,
-  Trash2,
   Upload,
   Image as ImageIcon,
   Loader2,
   Zap,
   Film,
-  Type
+  Type,
+  AlertCircle
 } from 'lucide-react';
 
 type PostType = 'video' | 'text';
@@ -42,15 +42,10 @@ interface FormData {
   horsepower: string;
   torque: string;
   engine: string;
-  transmission: string;
-  drivetrain: string;
   mods: string[];
   zero_to_60_mph: string;
-  zero_to_100_mph: string;
   quarter_mile_time: string;
-  quarter_mile_speed: string;
   top_speed: string;
-  location: string;
 }
 
 const initialFormData: FormData = {
@@ -70,15 +65,10 @@ const initialFormData: FormData = {
   horsepower: '',
   torque: '',
   engine: '',
-  transmission: '',
-  drivetrain: '',
   mods: [],
   zero_to_60_mph: '',
-  zero_to_100_mph: '',
   quarter_mile_time: '',
-  quarter_mile_speed: '',
   top_speed: '',
-  location: '',
 };
 
 const carTypes = [
@@ -94,13 +84,14 @@ export default function UploadPage() {
   const [currentStep, setCurrentStep] = useState<Step>('type');
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [collections, setCollections] = useState<any[]>([]);
-  const [channels, setChannels] = useState<any[]>([]);
   const [newMod, setNewMod] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
@@ -108,29 +99,82 @@ export default function UploadPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    async function fetchData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    initializePage();
+  }, []);
 
-      const { data: channelsData } = await supabase
+  const initializePage = async () => {
+    setPageLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
+
+    // Get user profile
+    const { data: profile } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    setUserProfile(profile);
+
+    // Get user's channels and collections
+    let { data: channels } = await supabase
+      .from('channels')
+      .select(`id, name, collections (id, title)`)
+      .eq('creator_id', user.id);
+
+    // If no channel exists, create one
+    if (!channels || channels.length === 0) {
+      const { data: newChannel, error: channelError } = await supabase
         .from('channels')
-        .select(`id, name, collections (id, title)`)
-        .eq('creator_id', user.id);
+        .insert({
+          name: profile?.username || user.email?.split('@')[0] || 'My Channel',
+          description: 'My racing channel',
+          creator_id: user.id,
+        })
+        .select()
+        .single();
 
-      if (channelsData) {
-        setChannels(channelsData);
-        const allCollections = channelsData.flatMap((ch: any) => 
-          ch.collections?.map((col: any) => ({
-            ...col,
-            channelName: ch.name,
-            channelId: ch.id,
-          })) || []
-        );
-        setCollections(allCollections);
+      if (newChannel) {
+        // Create a default collection
+        const { data: newCollection } = await supabase
+          .from('collections')
+          .insert({
+            channel_id: newChannel.id,
+            title: 'Posts',
+            description: 'My posts',
+            order_index: 0,
+          })
+          .select()
+          .single();
+
+        channels = [{
+          ...newChannel,
+          collections: newCollection ? [newCollection] : []
+        }];
       }
     }
-    fetchData();
-  }, []);
+
+    if (channels) {
+      const allCollections = channels.flatMap((ch: any) => 
+        ch.collections?.map((col: any) => ({
+          ...col,
+          channelName: ch.name,
+          channelId: ch.id,
+        })) || []
+      );
+      setCollections(allCollections);
+      
+      // Auto-select first collection
+      if (allCollections.length > 0) {
+        setFormData(prev => ({ ...prev, collection_id: allCollections[0].id }));
+      }
+    }
+    
+    setPageLoading(false);
+  };
 
   const updateForm = (field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -202,20 +246,6 @@ export default function UploadPage() {
     }
   };
 
-  const uploadFile = async (file: File, bucket: string, path: string) => {
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(path, file);
-    
-    if (error) throw error;
-    
-    const { data: urlData } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(path);
-    
-    return urlData.publicUrl;
-  };
-
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
@@ -224,23 +254,22 @@ export default function UploadPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      let videoUrl = formData.video_url;
-      let thumbnailUrl = formData.thumbnail_url;
+      if (!formData.collection_id) {
+        throw new Error('No collection selected');
+      }
 
-      // Upload video file if provided
+      let videoUrl = formData.video_url || null;
+      let thumbnailUrl = formData.thumbnail_url || null;
+
+      // For file uploads, we'd need Supabase Storage configured
+      // For now, just use URLs or skip if no video
       if (formData.video_file) {
-        setUploading(true);
-        const fileName = `${user.id}/${Date.now()}-${formData.video_file.name}`;
-        videoUrl = await uploadFile(formData.video_file, 'videos', fileName);
+        // In production, upload to Supabase Storage
+        // For demo, we'll show an error
+        setError('File upload requires Supabase Storage setup. Please use a video URL instead.');
+        setLoading(false);
+        return;
       }
-
-      // Upload thumbnail file if provided
-      if (formData.thumbnail_file) {
-        const fileName = `${user.id}/${Date.now()}-${formData.thumbnail_file.name}`;
-        thumbnailUrl = await uploadFile(formData.thumbnail_file, 'thumbnails', fileName);
-      }
-
-      setUploading(false);
 
       // Get highest order_index
       const { data: existingClips } = await supabase
@@ -252,20 +281,20 @@ export default function UploadPage() {
 
       const nextOrderIndex = (existingClips?.[0]?.order_index || 0) + 1;
 
-      // Create clip/post
+      // Create clip/post - use only columns that exist
+      const clipData: any = {
+        collection_id: formData.collection_id,
+        title: formData.title,
+        description: formData.post_type === 'text' ? formData.content : formData.description,
+        video_url: videoUrl,
+        thumbnail_url: thumbnailUrl,
+        order_index: nextOrderIndex,
+        is_published: true,
+      };
+
       const { data: clip, error: clipError } = await supabase
         .from('clips')
-        .insert({
-          collection_id: formData.collection_id,
-          title: formData.title,
-          description: formData.description,
-          content: formData.content,
-          post_type: formData.post_type,
-          video_url: videoUrl,
-          thumbnail_url: thumbnailUrl,
-          order_index: nextOrderIndex,
-          is_published: true,
-        })
+        .insert(clipData)
         .select()
         .single();
 
@@ -273,42 +302,49 @@ export default function UploadPage() {
 
       // Create car info if provided (video posts only)
       if (formData.post_type === 'video' && formData.make && formData.model && formData.year) {
-        await supabase.from('car_info').insert({
+        const carData: any = {
           clip_id: clip.id,
           make: formData.make,
           model: formData.model,
           year: parseInt(formData.year),
           car_type: formData.car_type,
-          horsepower: formData.horsepower ? parseInt(formData.horsepower) : null,
-          torque: formData.torque ? parseInt(formData.torque) : null,
-          engine: formData.engine || null,
-          transmission: formData.transmission || null,
-          drivetrain: formData.drivetrain || null,
-          mods: formData.mods.length > 0 ? formData.mods : null,
-        });
+        };
+        
+        if (formData.horsepower) carData.horsepower = parseInt(formData.horsepower);
+        if (formData.torque) carData.torque = parseInt(formData.torque);
+        if (formData.engine) carData.engine = formData.engine;
+        if (formData.mods.length > 0) carData.mods = formData.mods;
+
+        await supabase.from('car_info').insert(carData);
       }
 
       // Create performance stats if provided
       if (formData.post_type === 'video' && (formData.zero_to_60_mph || formData.quarter_mile_time || formData.top_speed)) {
-        await supabase.from('performance_stats').insert({
-          clip_id: clip.id,
-          zero_to_60_mph: formData.zero_to_60_mph ? parseFloat(formData.zero_to_60_mph) : null,
-          zero_to_100_mph: formData.zero_to_100_mph ? parseFloat(formData.zero_to_100_mph) : null,
-          quarter_mile_time: formData.quarter_mile_time ? parseFloat(formData.quarter_mile_time) : null,
-          quarter_mile_speed: formData.quarter_mile_speed ? parseFloat(formData.quarter_mile_speed) : null,
-          top_speed: formData.top_speed ? parseFloat(formData.top_speed) : null,
-          location: formData.location || null,
-        });
+        const perfData: any = { clip_id: clip.id };
+        
+        if (formData.zero_to_60_mph) perfData.zero_to_60_mph = parseFloat(formData.zero_to_60_mph);
+        if (formData.quarter_mile_time) perfData.quarter_mile_time = parseFloat(formData.quarter_mile_time);
+        if (formData.top_speed) perfData.top_speed = parseFloat(formData.top_speed);
+
+        await supabase.from('performance_stats').insert(perfData);
       }
 
       router.push('/dashboard/feed');
     } catch (err: any) {
+      console.error('Submit error:', err);
       setError(err.message || 'Failed to create post');
     } finally {
       setLoading(false);
-      setUploading(false);
     }
   };
+
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-accent animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">
@@ -342,17 +378,25 @@ export default function UploadPage() {
                 }`}>
                   {isPast ? <Check className="w-4 h-4" /> : index + 1}
                 </div>
-                <span className={`ml-2 text-sm font-semibold ${isActive ? 'text-x-white' : 'text-x-gray'}`}>
+                <span className={`ml-2 text-sm font-semibold hidden sm:block ${isActive ? 'text-x-white' : 'text-x-gray'}`}>
                   {labels[step]}
                 </span>
                 {index < steps.length - 1 && (
-                  <ChevronRight className="w-5 h-5 text-x-gray mx-4" />
+                  <ChevronRight className="w-5 h-5 text-x-gray mx-2 sm:mx-4" />
                 )}
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* Error display */}
+      {error && (
+        <div className="mb-6 p-4 bg-accent/10 border border-accent/30 rounded-xl text-accent text-sm flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Form */}
       <div className="glass rounded-xl p-6 mb-6">
@@ -374,7 +418,7 @@ export default function UploadPage() {
               >
                 <Film className={`w-10 h-10 mb-3 ${formData.post_type === 'video' ? 'text-accent' : 'text-x-gray'}`} />
                 <div className="font-display font-bold text-x-white text-lg">Video Post</div>
-                <p className="text-sm text-x-gray mt-1">Share a clip with car specs and performance data</p>
+                <p className="text-sm text-x-gray mt-1">Share a clip with car specs</p>
               </button>
               
               <button
@@ -387,7 +431,7 @@ export default function UploadPage() {
               >
                 <Type className={`w-10 h-10 mb-3 ${formData.post_type === 'text' ? 'text-accent' : 'text-x-gray'}`} />
                 <div className="font-display font-bold text-x-white text-lg">Text Post</div>
-                <p className="text-sm text-x-gray mt-1">Share thoughts, questions, or updates</p>
+                <p className="text-sm text-x-gray mt-1">Share thoughts or updates</p>
               </button>
             </div>
           </div>
@@ -437,7 +481,7 @@ export default function UploadPage() {
                     />
                   </div>
 
-                  {/* Video Upload */}
+                  {/* Video Input */}
                   <div>
                     <label className="block text-sm font-semibold text-x-lightgray mb-2">Video</label>
                     
@@ -469,20 +513,20 @@ export default function UploadPage() {
                           className="hidden"
                         />
                         
-                        <div className="text-center text-x-gray text-sm">or</div>
+                        <div className="text-center text-x-gray text-sm">or paste a URL</div>
                         
                         <input
                           type="url"
                           value={formData.video_url}
                           onChange={(e) => updateForm('video_url', e.target.value)}
-                          placeholder="Paste video URL (YouTube, Vimeo, etc.)"
+                          placeholder="https://youtube.com/watch?v=..."
                           className="input-racing"
                         />
                       </div>
                     )}
                   </div>
 
-                  {/* Thumbnail Upload */}
+                  {/* Thumbnail */}
                   <div>
                     <label className="block text-sm font-semibold text-x-lightgray mb-2">Thumbnail (optional)</label>
                     
@@ -503,7 +547,7 @@ export default function UploadPage() {
                           className="px-4 py-3 border border-x-border rounded-xl hover:border-accent transition-colors flex items-center gap-2"
                         >
                           <ImageIcon className="w-5 h-5 text-x-gray" />
-                          <span className="text-x-white">Upload image</span>
+                          <span className="text-x-white">Upload</span>
                         </button>
                         <input
                           ref={thumbnailInputRef}
@@ -525,42 +569,34 @@ export default function UploadPage() {
                 </>
               )}
 
-              <div>
-                <label className="block text-sm font-semibold text-x-lightgray mb-2">Collection *</label>
-                {collections.length > 0 ? (
+              {/* Collection selector */}
+              {collections.length > 0 && (
+                <div>
+                  <label className="block text-sm font-semibold text-x-lightgray mb-2">Post to</label>
                   <select
                     value={formData.collection_id}
                     onChange={(e) => updateForm('collection_id', e.target.value)}
                     className="input-racing"
                   >
-                    <option value="">Select a collection</option>
                     {collections.map((col) => (
                       <option key={col.id} value={col.id}>
                         {col.channelName} → {col.title}
                       </option>
                     ))}
                   </select>
-                ) : (
-                  <div className="p-4 bg-dark-400 rounded-xl text-center">
-                    <p className="text-x-gray mb-2">You need to create a channel first</p>
-                    <a href="/dashboard/my-channel" className="text-accent hover:underline">
-                      Create Channel →
-                    </a>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Step 3: Car Info (Video only) */}
+        {/* Step 3: Car Info */}
         {currentStep === 'car' && (
           <div className="space-y-6 animate-fade-in">
             <h2 className="text-xl font-display font-semibold text-x-white flex items-center gap-2">
               <Car className="w-5 h-5 text-accent" />
-              Car Information
+              Car Information (Optional)
             </h2>
-            <p className="text-x-gray text-sm">Optional - add details about the car</p>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
@@ -579,7 +615,7 @@ export default function UploadPage() {
 
             <div>
               <label className="block text-sm font-semibold text-x-lightgray mb-2">Type</label>
-              <div className="grid grid-cols-6 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                 {carTypes.map((type) => (
                   <button
                     key={type.value}
@@ -588,7 +624,7 @@ export default function UploadPage() {
                       formData.car_type === type.value ? 'border-accent bg-accent/10' : 'border-x-border hover:border-x-gray'
                     }`}
                   >
-                    <span className={`font-semibold ${type.color}`}>{type.label}</span>
+                    <span className={`font-semibold text-sm ${type.color}`}>{type.label}</span>
                   </button>
                 ))}
               </div>
@@ -639,23 +675,18 @@ export default function UploadPage() {
           </div>
         )}
 
-        {/* Step 4: Performance (Video only) */}
+        {/* Step 4: Performance */}
         {currentStep === 'performance' && (
           <div className="space-y-6 animate-fade-in">
             <h2 className="text-xl font-display font-semibold text-x-white flex items-center gap-2">
               <Timer className="w-5 h-5 text-accent" />
-              Performance Stats
+              Performance Stats (Optional)
             </h2>
-            <p className="text-x-gray text-sm">Optional - add your times</p>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-x-lightgray mb-2">0-60 MPH (s)</label>
                 <input type="number" step="0.01" value={formData.zero_to_60_mph} onChange={(e) => updateForm('zero_to_60_mph', e.target.value)} placeholder="2.7" className="input-racing" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-x-lightgray mb-2">0-100 MPH (s)</label>
-                <input type="number" step="0.01" value={formData.zero_to_100_mph} onChange={(e) => updateForm('zero_to_100_mph', e.target.value)} placeholder="5.9" className="input-racing" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-x-lightgray mb-2">1/4 Mile (s)</label>
@@ -663,13 +694,8 @@ export default function UploadPage() {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-x-lightgray mb-2">Top Speed (mph)</label>
-                <input type="number" step="0.1" value={formData.top_speed} onChange={(e) => updateForm('top_speed', e.target.value)} placeholder="198" className="input-racing" />
+                <input type="number" value={formData.top_speed} onChange={(e) => updateForm('top_speed', e.target.value)} placeholder="198" className="input-racing" />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-x-lightgray mb-2">Location</label>
-              <input type="text" value={formData.location} onChange={(e) => updateForm('location', e.target.value)} placeholder="Texas Highway" className="input-racing" />
             </div>
           </div>
         )}
@@ -682,29 +708,17 @@ export default function UploadPage() {
               Review Your Post
             </h2>
 
-            {error && (
-              <div className="p-4 bg-accent/10 border border-accent/30 rounded-xl text-accent text-sm">
-                {error}
-              </div>
-            )}
-
             <div className="bg-dark-100 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 {formData.post_type === 'video' ? <Film className="w-5 h-5 text-accent" /> : <FileText className="w-5 h-5 text-accent" />}
                 <span className="text-x-gray text-sm uppercase">{formData.post_type} Post</span>
               </div>
               <h3 className="text-lg font-bold text-x-white">{formData.title || 'Untitled'}</h3>
-              {formData.post_type === 'text' ? (
-                <p className="text-x-gray mt-2 whitespace-pre-wrap">{formData.content || 'No content'}</p>
-              ) : (
-                <>
-                  <p className="text-x-gray mt-1">{formData.description || 'No description'}</p>
-                  {formData.make && (
-                    <p className="text-accent mt-2">
-                      {formData.year} {formData.make} {formData.model} {formData.horsepower && `• ${formData.horsepower}hp`}
-                    </p>
-                  )}
-                </>
+              <p className="text-x-gray mt-1">{formData.post_type === 'text' ? formData.content : formData.description || 'No description'}</p>
+              {formData.post_type === 'video' && formData.make && (
+                <p className="text-accent mt-2">
+                  {formData.year} {formData.make} {formData.model} {formData.horsepower && `• ${formData.horsepower}hp`}
+                </p>
               )}
             </div>
           </div>
