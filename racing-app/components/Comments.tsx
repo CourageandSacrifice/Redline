@@ -2,18 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { MessageCircle, Send, Heart, MoreHorizontal, Trash2, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, Heart, Trash2, Loader2 } from 'lucide-react';
+
+interface CommentUser {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+}
 
 interface Comment {
   id: string;
   content: string;
   like_count: number;
   created_at: string;
-  user: {
-    id: string;
-    username: string;
-    avatar_url: string;
-  };
+  user: CommentUser | null;
   replies?: Comment[];
 }
 
@@ -42,6 +44,19 @@ export default function Comments({ clipId, commentCount: initialCount }: Comment
   const getCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) setCurrentUserId(user.id);
+  };
+
+  const transformComment = (raw: any): Comment => {
+    // Handle user being an array (from Supabase join) or single object
+    const user = Array.isArray(raw.user) ? raw.user[0] : raw.user;
+    return {
+      id: raw.id,
+      content: raw.content,
+      like_count: raw.like_count || 0,
+      created_at: raw.created_at,
+      user: user || null,
+      replies: raw.replies?.map(transformComment) || [],
+    };
   };
 
   const fetchComments = async () => {
@@ -83,10 +98,10 @@ export default function Comments({ clipId, commentCount: initialCount }: Comment
             .eq('parent_id', comment.id)
             .order('created_at', { ascending: true });
           
-          return { ...comment, replies: replies || [] };
+          return transformComment({ ...comment, replies: replies || [] });
         })
       );
-      setComments(commentsWithReplies as Comment[]);
+      setComments(commentsWithReplies);
     }
     setLoading(false);
   };
@@ -124,18 +139,20 @@ export default function Comments({ clipId, commentCount: initialCount }: Comment
       .single();
 
     if (data) {
+      const newCommentData = transformComment(data);
+      
       if (parentId) {
         // Add reply to parent comment
         setComments(prev => prev.map(c => 
           c.id === parentId 
-            ? { ...c, replies: [...(c.replies || []), data as Comment] }
+            ? { ...c, replies: [...(c.replies || []), newCommentData] }
             : c
         ));
         setReplyContent('');
         setReplyingTo(null);
       } else {
         // Add new top-level comment
-        setComments(prev => [{ ...data, replies: [] } as Comment, ...prev]);
+        setComments(prev => [newCommentData, ...prev]);
         setNewComment('');
       }
       setCommentCount(prev => prev + 1);
