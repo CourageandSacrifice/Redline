@@ -1,32 +1,32 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { 
   Heart, 
   MessageCircle, 
   Share2, 
-  Volume2, 
-  VolumeX,
+  Repeat2,
+  MoreHorizontal,
   Play,
-  Pause,
-  ChevronUp,
-  ChevronDown,
   Gauge,
   Timer,
-  User,
-  Flame
+  Flame,
+  Loader2,
+  Bookmark
 } from 'lucide-react';
 import Link from 'next/link';
+import Comments from '@/components/Comments';
 
-interface FeedClip {
+interface FeedPost {
   id: string;
   title: string;
   description: string;
-  video_url: string;
-  thumbnail_url: string;
+  video_url: string | null;
+  thumbnail_url: string | null;
   view_count: number;
   like_count: number;
+  comment_count: number;
   created_at: string;
   car_info: {
     make: string;
@@ -38,6 +38,7 @@ interface FeedClip {
   performance_stats: {
     zero_to_60_mph: number;
     quarter_mile_time: number;
+    top_speed: number;
   }[];
   collection: {
     id: string;
@@ -50,18 +51,14 @@ interface FeedClip {
 }
 
 export default function FeedPage() {
-  const [clips, setClips] = useState<FeedClip[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [muted, setMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [likedClips, setLikedClips] = useState<Set<string>>(new Set());
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const supabase = createClient();
 
-  // Fetch clips
   useEffect(() => {
-    async function fetchClips() {
+    async function fetchPosts() {
       const { data, error } = await supabase
         .from('clips')
         .select(`
@@ -72,6 +69,7 @@ export default function FeedPage() {
           thumbnail_url,
           view_count,
           like_count,
+          comment_count,
           created_at,
           car_info (
             make,
@@ -82,7 +80,8 @@ export default function FeedPage() {
           ),
           performance_stats (
             zero_to_60_mph,
-            quarter_mile_time
+            quarter_mile_time,
+            top_speed
           ),
           collection:collections (
             id,
@@ -95,324 +94,369 @@ export default function FeedPage() {
         `)
         .eq('is_published', true)
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (data) {
-        setClips(data as unknown as FeedClip[]);
+        setPosts(data as unknown as FeedPost[]);
       }
       setLoading(false);
     }
 
-    fetchClips();
+    fetchPosts();
   }, []);
 
-  // Handle scroll/swipe
-  const goToClip = useCallback((index: number) => {
-    if (index >= 0 && index < clips.length) {
-      setCurrentIndex(index);
-    }
-  }, [clips.length]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowUp') {
-        goToClip(currentIndex - 1);
-      } else if (e.key === 'ArrowDown') {
-        goToClip(currentIndex + 1);
-      } else if (e.key === ' ') {
-        e.preventDefault();
-        setIsPlaying(prev => !prev);
-      } else if (e.key === 'm') {
-        setMuted(prev => !prev);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, goToClip]);
-
-  // Touch/scroll handling
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    let startY = 0;
-    let isDragging = false;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      startY = e.touches[0].clientY;
-      isDragging = true;
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (!isDragging) return;
-      const endY = e.changedTouches[0].clientY;
-      const diff = startY - endY;
-
-      if (Math.abs(diff) > 50) {
-        if (diff > 0) {
-          goToClip(currentIndex + 1);
-        } else {
-          goToClip(currentIndex - 1);
-        }
-      }
-      isDragging = false;
-    };
-
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      if (e.deltaY > 0) {
-        goToClip(currentIndex + 1);
-      } else {
-        goToClip(currentIndex - 1);
-      }
-    };
-
-    container.addEventListener('touchstart', handleTouchStart);
-    container.addEventListener('touchend', handleTouchEnd);
-    container.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchend', handleTouchEnd);
-      container.removeEventListener('wheel', handleWheel);
-    };
-  }, [currentIndex, goToClip]);
-
-  // Toggle like
-  const toggleLike = async (clipId: string) => {
-    const newLiked = new Set(likedClips);
-    if (newLiked.has(clipId)) {
-      newLiked.delete(clipId);
+  const toggleLike = async (postId: string) => {
+    const newLiked = new Set(likedPosts);
+    if (newLiked.has(postId)) {
+      newLiked.delete(postId);
     } else {
-      newLiked.add(clipId);
+      newLiked.add(postId);
     }
-    setLikedClips(newLiked);
+    setLikedPosts(newLiked);
   };
 
-  // Get car badge class
+  const toggleComments = (postId: string) => {
+    const newExpanded = new Set(expandedComments);
+    if (newExpanded.has(postId)) {
+      newExpanded.delete(postId);
+    } else {
+      newExpanded.add(postId);
+    }
+    setExpandedComments(newExpanded);
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'now';
+    if (minutes < 60) return `${minutes}m`;
+    if (hours < 24) return `${hours}h`;
+    if (days < 7) return `${days}d`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   const getCarBadgeClass = (carType: string) => {
     const badges: Record<string, string> = {
-      jdm: 'bg-red-500/20 text-red-400',
-      euro: 'bg-blue-500/20 text-blue-400',
-      muscle: 'bg-orange-500/20 text-orange-400',
-      exotic: 'bg-purple-500/20 text-purple-400',
+      jdm: 'bg-red-500/20 text-red-400 border-red-500/30',
+      euro: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      muscle: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+      exotic: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+      truck: 'bg-green-500/20 text-green-400 border-green-500/30',
     };
-    return badges[carType] || 'bg-gray-500/20 text-gray-400';
+    return badges[carType] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+  };
+
+  const isTextPost = (post: FeedPost) => {
+    return !post.video_url && !post.thumbnail_url && !post.car_info?.[0];
   };
 
   if (loading) {
     return (
-      <div className="h-[calc(100vh-64px)] flex items-center justify-center">
-        <div className="text-center">
-          <Gauge className="w-12 h-12 text-neon-purple animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Loading feed...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-accent animate-spin" />
       </div>
     );
   }
 
-  if (clips.length === 0) {
+  if (posts.length === 0) {
     return (
-      <div className="h-[calc(100vh-64px)] flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Flame className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <h2 className="text-xl font-display font-bold text-white mb-2">No Clips Yet</h2>
-          <p className="text-gray-400 mb-6">Be the first to post a clip!</p>
-          <Link href="/dashboard/upload" className="btn-neon">
-            Upload Clip
+          <Flame className="w-16 h-16 text-x-gray mx-auto mb-4 opacity-30" />
+          <h2 className="text-xl font-display font-bold text-x-white mb-2">No Posts Yet</h2>
+          <p className="text-x-gray mb-6">Be the first to post something!</p>
+          <Link href="/dashboard/upload" className="btn-accent">
+            Create Post
           </Link>
         </div>
       </div>
     );
   }
 
-  const currentClip = clips[currentIndex];
-
   return (
-    <div 
-      ref={containerRef}
-      className="h-[calc(100vh-64px)] -m-8 overflow-hidden relative bg-black"
-    >
-      {/* Navigation hints */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 bg-black/50 backdrop-blur rounded-full">
-        <span className="text-xs text-gray-400">
-          {currentIndex + 1} / {clips.length}
-        </span>
-      </div>
+    <div className="max-w-2xl mx-auto">
+      <div className="divide-y divide-x-border">
+        {posts.map((post) => (
+          <article key={post.id} className="py-4 hover:bg-white/[0.02] transition-colors">
+            {isTextPost(post) ? (
+              /* ==================== TEXT POST (Tweet Style) ==================== */
+              <div className="px-4">
+                <div className="flex gap-3">
+                  {/* Avatar */}
+                  <Link href={`/dashboard/channels/${post.collection?.channel?.id}`} className="flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold">
+                      {post.collection?.channel?.avatar_url ? (
+                        <img 
+                          src={post.collection.channel.avatar_url} 
+                          alt="" 
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        post.collection?.channel?.name?.charAt(0).toUpperCase() || 'R'
+                      )}
+                    </div>
+                  </Link>
 
-      {/* Up arrow */}
-      {currentIndex > 0 && (
-        <button
-          onClick={() => goToClip(currentIndex - 1)}
-          className="absolute top-20 left-1/2 -translate-x-1/2 z-20 p-2 bg-black/30 rounded-full text-white/70 hover:text-white hover:bg-black/50 transition-all"
-        >
-          <ChevronUp className="w-6 h-6" />
-        </button>
-      )}
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    {/* Header */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <Link 
+                        href={`/dashboard/channels/${post.collection?.channel?.id}`}
+                        className="font-bold text-x-white hover:underline truncate"
+                      >
+                        {post.collection?.channel?.name || 'Unknown'}
+                      </Link>
+                      <span className="text-x-gray">·</span>
+                      <span className="text-x-gray text-sm">{formatTime(post.created_at)}</span>
+                      <button className="ml-auto text-x-gray hover:text-accent p-1 rounded-full hover:bg-accent/10">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                    </div>
 
-      {/* Down arrow */}
-      {currentIndex < clips.length - 1 && (
-        <button
-          onClick={() => goToClip(currentIndex + 1)}
-          className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 p-2 bg-black/30 rounded-full text-white/70 hover:text-white hover:bg-black/50 transition-all"
-        >
-          <ChevronDown className="w-6 h-6" />
-        </button>
-      )}
+                    {/* Title as main content for text posts */}
+                    <p className="text-x-white text-[15px] leading-relaxed whitespace-pre-wrap mb-1">
+                      {post.title}
+                    </p>
 
-      {/* Video container */}
-      <div className="h-full flex items-center justify-center">
-        <div className="relative w-full max-w-lg h-full">
-          {/* Video/Thumbnail */}
-          <div className="absolute inset-0 bg-dark-500">
-            {currentClip.video_url ? (
-              <iframe
-                src={`${currentClip.video_url}${currentClip.video_url.includes('?') ? '&' : '?'}autoplay=1&mute=${muted ? 1 : 0}`}
-                className="w-full h-full object-cover"
-                allow="autoplay; fullscreen"
-              />
-            ) : currentClip.thumbnail_url ? (
-              <img 
-                src={currentClip.thumbnail_url} 
-                alt={currentClip.title}
-                className="w-full h-full object-cover"
-              />
+                    {/* Description if any */}
+                    {post.description && (
+                      <p className="text-x-lightgray text-[15px] leading-relaxed whitespace-pre-wrap">
+                        {post.description}
+                      </p>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-between mt-3 max-w-md">
+                      <button 
+                        onClick={() => toggleComments(post.id)}
+                        className="flex items-center gap-2 text-x-gray hover:text-accent group"
+                      >
+                        <div className="p-2 rounded-full group-hover:bg-accent/10 transition-colors">
+                          <MessageCircle className="w-[18px] h-[18px]" />
+                        </div>
+                        <span className="text-sm">{post.comment_count || 0}</span>
+                      </button>
+
+                      <button className="flex items-center gap-2 text-x-gray hover:text-green-500 group">
+                        <div className="p-2 rounded-full group-hover:bg-green-500/10 transition-colors">
+                          <Repeat2 className="w-[18px] h-[18px]" />
+                        </div>
+                        <span className="text-sm">0</span>
+                      </button>
+
+                      <button 
+                        onClick={() => toggleLike(post.id)}
+                        className={`flex items-center gap-2 group ${likedPosts.has(post.id) ? 'text-pink-500' : 'text-x-gray hover:text-pink-500'}`}
+                      >
+                        <div className="p-2 rounded-full group-hover:bg-pink-500/10 transition-colors">
+                          <Heart className={`w-[18px] h-[18px] ${likedPosts.has(post.id) ? 'fill-current' : ''}`} />
+                        </div>
+                        <span className="text-sm">{post.like_count + (likedPosts.has(post.id) ? 1 : 0)}</span>
+                      </button>
+
+                      <button className="flex items-center gap-2 text-x-gray hover:text-accent group">
+                        <div className="p-2 rounded-full group-hover:bg-accent/10 transition-colors">
+                          <Bookmark className="w-[18px] h-[18px]" />
+                        </div>
+                      </button>
+
+                      <button className="flex items-center gap-2 text-x-gray hover:text-accent group">
+                        <div className="p-2 rounded-full group-hover:bg-accent/10 transition-colors">
+                          <Share2 className="w-[18px] h-[18px]" />
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comments Section */}
+                {expandedComments.has(post.id) && (
+                  <div className="mt-4 ml-13 pl-10 border-l border-x-border">
+                    <Comments clipId={post.id} commentCount={post.comment_count || 0} />
+                  </div>
+                )}
+              </div>
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neon-purple/20 to-neon-cyan/20">
-                <Play className="w-20 h-20 text-white/30" />
-              </div>
-            )}
-          </div>
+              /* ==================== VIDEO POST (Card Style) ==================== */
+              <div className="px-4">
+                <div className="flex gap-3">
+                  {/* Avatar */}
+                  <Link href={`/dashboard/channels/${post.collection?.channel?.id}`} className="flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold">
+                      {post.collection?.channel?.avatar_url ? (
+                        <img 
+                          src={post.collection.channel.avatar_url} 
+                          alt="" 
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        post.collection?.channel?.name?.charAt(0).toUpperCase() || 'R'
+                      )}
+                    </div>
+                  </Link>
 
-          {/* Gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    {/* Header */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <Link 
+                        href={`/dashboard/channels/${post.collection?.channel?.id}`}
+                        className="font-bold text-x-white hover:underline truncate"
+                      >
+                        {post.collection?.channel?.name || 'Unknown'}
+                      </Link>
+                      <span className="text-x-gray">·</span>
+                      <span className="text-x-gray text-sm">{formatTime(post.created_at)}</span>
+                      <button className="ml-auto text-x-gray hover:text-accent p-1 rounded-full hover:bg-accent/10">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                    </div>
 
-          {/* Right side actions */}
-          <div className="absolute right-4 bottom-32 flex flex-col items-center gap-6 z-10">
-            {/* Like */}
-            <button 
-              onClick={() => toggleLike(currentClip.id)}
-              className="flex flex-col items-center gap-1"
-            >
-              <div className={`p-3 rounded-full ${likedClips.has(currentClip.id) ? 'bg-neon-pink text-white' : 'bg-black/50 text-white'} transition-all`}>
-                <Heart className={`w-7 h-7 ${likedClips.has(currentClip.id) ? 'fill-current' : ''}`} />
-              </div>
-              <span className="text-xs text-white font-semibold">
-                {(currentClip.like_count + (likedClips.has(currentClip.id) ? 1 : 0)).toLocaleString()}
-              </span>
-            </button>
+                    {/* Title */}
+                    <h3 className="text-x-white font-semibold mb-2">{post.title}</h3>
 
-            {/* Comments */}
-            <button className="flex flex-col items-center gap-1">
-              <div className="p-3 rounded-full bg-black/50 text-white">
-                <MessageCircle className="w-7 h-7" />
-              </div>
-              <span className="text-xs text-white font-semibold">0</span>
-            </button>
+                    {/* Description */}
+                    {post.description && (
+                      <p className="text-x-lightgray text-sm mb-3 line-clamp-2">{post.description}</p>
+                    )}
 
-            {/* Share */}
-            <button className="flex flex-col items-center gap-1">
-              <div className="p-3 rounded-full bg-black/50 text-white">
-                <Share2 className="w-7 h-7" />
-              </div>
-              <span className="text-xs text-white font-semibold">Share</span>
-            </button>
+                    {/* Video/Thumbnail Card */}
+                    <Link 
+                      href={`/dashboard/channels/${post.collection?.channel?.id}/collections/${post.collection?.id}/clips/${post.id}`}
+                      className="block rounded-2xl overflow-hidden border border-x-border hover:border-x-gray transition-colors"
+                    >
+                      {/* Video/Image */}
+                      <div className="relative aspect-video bg-dark-400">
+                        {post.thumbnail_url ? (
+                          <img 
+                            src={post.thumbnail_url} 
+                            alt={post.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : post.video_url ? (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-accent/20 to-accent/5">
+                            <Play className="w-16 h-16 text-white/50" />
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-dark-300">
+                            <Gauge className="w-12 h-12 text-x-gray/30" />
+                          </div>
+                        )}
 
-            {/* Mute toggle */}
-            <button 
-              onClick={() => setMuted(!muted)}
-              className="p-3 rounded-full bg-black/50 text-white"
-            >
-              {muted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-            </button>
-          </div>
+                        {/* Play button overlay */}
+                        {(post.video_url || post.thumbnail_url) && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity">
+                            <div className="w-16 h-16 rounded-full bg-accent/90 flex items-center justify-center">
+                              <Play className="w-8 h-8 text-white ml-1" />
+                            </div>
+                          </div>
+                        )}
 
-          {/* Bottom info */}
-          <div className="absolute bottom-0 left-0 right-16 p-4 z-10">
-            {/* Channel info */}
-            <Link 
-              href={`/dashboard/channels/${currentClip.collection?.channel?.id}`}
-              className="flex items-center gap-3 mb-3"
-            >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-purple to-neon-cyan flex items-center justify-center text-white font-bold">
-                {currentClip.collection?.channel?.avatar_url ? (
-                  <img 
-                    src={currentClip.collection.channel.avatar_url} 
-                    alt="" 
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (
-                  currentClip.collection?.channel?.name?.charAt(0) || 'R'
-                )}
-              </div>
-              <span className="font-display font-semibold text-white">
-                @{currentClip.collection?.channel?.name?.toLowerCase().replace(/\s/g, '')}
-              </span>
-            </Link>
+                        {/* Performance overlay */}
+                        {post.performance_stats?.[0] && (
+                          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                            <div className="flex items-center gap-4">
+                              {post.performance_stats[0].zero_to_60_mph && (
+                                <div className="flex items-center gap-1">
+                                  <Timer className="w-4 h-4 text-green-400" />
+                                  <span className="text-green-400 text-sm font-bold">
+                                    {post.performance_stats[0].zero_to_60_mph}s
+                                  </span>
+                                  <span className="text-white/60 text-xs">0-60</span>
+                                </div>
+                              )}
+                              {post.performance_stats[0].quarter_mile_time && (
+                                <div className="flex items-center gap-1">
+                                  <Gauge className="w-4 h-4 text-accent" />
+                                  <span className="text-accent text-sm font-bold">
+                                    {post.performance_stats[0].quarter_mile_time}s
+                                  </span>
+                                  <span className="text-white/60 text-xs">1/4 mi</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
 
-            {/* Title */}
-            <h2 className="font-display font-bold text-white text-lg mb-2">
-              {currentClip.title}
-            </h2>
+                      {/* Car Info Bar */}
+                      {post.car_info?.[0] && (
+                        <div className="p-3 bg-dark-300 flex items-center gap-3">
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase border ${getCarBadgeClass(post.car_info[0].car_type)}`}>
+                            {post.car_info[0].car_type}
+                          </span>
+                          <span className="text-x-white text-sm font-medium">
+                            {post.car_info[0].year} {post.car_info[0].make} {post.car_info[0].model}
+                          </span>
+                          {post.car_info[0].horsepower && (
+                            <span className="text-accent text-sm font-bold ml-auto">
+                              {post.car_info[0].horsepower}hp
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </Link>
 
-            {/* Car info */}
-            {currentClip.car_info?.[0] && (
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`px-2 py-1 rounded text-xs font-semibold uppercase ${getCarBadgeClass(currentClip.car_info[0].car_type)}`}>
-                  {currentClip.car_info[0].car_type}
-                </span>
-                <span className="text-white text-sm">
-                  {currentClip.car_info[0].year} {currentClip.car_info[0].make} {currentClip.car_info[0].model}
-                </span>
-                {currentClip.car_info[0].horsepower && (
-                  <span className="text-neon-purple text-sm font-semibold">
-                    {currentClip.car_info[0].horsepower}hp
-                  </span>
-                )}
-              </div>
-            )}
+                    {/* Actions */}
+                    <div className="flex items-center justify-between mt-3 max-w-md">
+                      <button 
+                        onClick={() => toggleComments(post.id)}
+                        className="flex items-center gap-2 text-x-gray hover:text-accent group"
+                      >
+                        <div className="p-2 rounded-full group-hover:bg-accent/10 transition-colors">
+                          <MessageCircle className="w-[18px] h-[18px]" />
+                        </div>
+                        <span className="text-sm">{post.comment_count || 0}</span>
+                      </button>
 
-            {/* Performance stats */}
-            {currentClip.performance_stats?.[0] && (
-              <div className="flex items-center gap-4">
-                {currentClip.performance_stats[0].zero_to_60_mph && (
-                  <div className="flex items-center gap-1">
-                    <Timer className="w-4 h-4 text-neon-green" />
-                    <span className="text-neon-green text-sm font-display font-bold">
-                      {currentClip.performance_stats[0].zero_to_60_mph}s
-                    </span>
-                    <span className="text-gray-400 text-xs">0-60</span>
+                      <button className="flex items-center gap-2 text-x-gray hover:text-green-500 group">
+                        <div className="p-2 rounded-full group-hover:bg-green-500/10 transition-colors">
+                          <Repeat2 className="w-[18px] h-[18px]" />
+                        </div>
+                        <span className="text-sm">0</span>
+                      </button>
+
+                      <button 
+                        onClick={() => toggleLike(post.id)}
+                        className={`flex items-center gap-2 group ${likedPosts.has(post.id) ? 'text-pink-500' : 'text-x-gray hover:text-pink-500'}`}
+                      >
+                        <div className="p-2 rounded-full group-hover:bg-pink-500/10 transition-colors">
+                          <Heart className={`w-[18px] h-[18px] ${likedPosts.has(post.id) ? 'fill-current' : ''}`} />
+                        </div>
+                        <span className="text-sm">{post.like_count + (likedPosts.has(post.id) ? 1 : 0)}</span>
+                      </button>
+
+                      <button className="flex items-center gap-2 text-x-gray hover:text-accent group">
+                        <div className="p-2 rounded-full group-hover:bg-accent/10 transition-colors">
+                          <Bookmark className="w-[18px] h-[18px]" />
+                        </div>
+                      </button>
+
+                      <button className="flex items-center gap-2 text-x-gray hover:text-accent group">
+                        <div className="p-2 rounded-full group-hover:bg-accent/10 transition-colors">
+                          <Share2 className="w-[18px] h-[18px]" />
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comments Section */}
+                {expandedComments.has(post.id) && (
+                  <div className="mt-4 ml-13 pl-10 border-l border-x-border">
+                    <Comments clipId={post.id} commentCount={post.comment_count || 0} />
                   </div>
                 )}
-                {currentClip.performance_stats[0].quarter_mile_time && (
-                  <div className="flex items-center gap-1">
-                    <Gauge className="w-4 h-4 text-neon-cyan" />
-                    <span className="text-neon-cyan text-sm font-display font-bold">
-                      {currentClip.performance_stats[0].quarter_mile_time}s
-                    </span>
-                    <span className="text-gray-400 text-xs">1/4 mi</span>
-                  </div>
-                )}
               </div>
             )}
-
-            {/* Description */}
-            {currentClip.description && (
-              <p className="text-gray-300 text-sm mt-2 line-clamp-2">
-                {currentClip.description}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Keyboard hints */}
-      <div className="absolute bottom-4 left-4 text-xs text-gray-500 hidden md:block">
-        <span className="mr-4">↑↓ Navigate</span>
-        <span className="mr-4">Space: Play/Pause</span>
-        <span>M: Mute</span>
+          </article>
+        ))}
       </div>
     </div>
   );

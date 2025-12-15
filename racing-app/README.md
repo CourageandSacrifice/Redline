@@ -78,7 +78,7 @@ npm install
 ### 3. Set Up Environment
 
 ```bash
-cp env.local env.local
+cp .env.local.example .env.local
 ```
 
 Edit `.env.local` with your Supabase credentials:
