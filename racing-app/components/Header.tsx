@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { 
   Search, 
@@ -46,6 +47,8 @@ export default function Header({ user }: HeaderProps) {
     router.push('/auth/login');
     router.refresh();
   };
+
+  const closeDropdown = () => setDropdownOpen(false);
 
   return (
     <header className="h-14 border-b border-x-border bg-dark-300/80 backdrop-blur-md sticky top-0 z-30">
@@ -110,22 +113,38 @@ export default function Header({ user }: HeaderProps) {
 
                 {/* Menu items */}
                 <div className="py-2">
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-x-white hover:bg-white/5 transition-colors text-left">
+                  <Link 
+                    href="/dashboard/profile"
+                    onClick={closeDropdown}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-x-white hover:bg-white/5 transition-colors"
+                  >
                     <User className="w-5 h-5 text-x-gray" />
                     <span>Profile</span>
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-x-white hover:bg-white/5 transition-colors text-left">
+                  </Link>
+                  <Link 
+                    href="/dashboard/stats"
+                    onClick={closeDropdown}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-x-white hover:bg-white/5 transition-colors"
+                  >
                     <Trophy className="w-5 h-5 text-x-gray" />
                     <span>My Stats</span>
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-x-white hover:bg-white/5 transition-colors text-left">
+                  </Link>
+                  <Link 
+                    href="/dashboard/runs"
+                    onClick={closeDropdown}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-x-white hover:bg-white/5 transition-colors"
+                  >
                     <Timer className="w-5 h-5 text-x-gray" />
                     <span>My Runs</span>
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-x-white hover:bg-white/5 transition-colors text-left">
+                  </Link>
+                  <Link 
+                    href="/dashboard/settings"
+                    onClick={closeDropdown}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-x-white hover:bg-white/5 transition-colors"
+                  >
                     <Settings className="w-5 h-5 text-x-gray" />
                     <span>Settings</span>
-                  </button>
+                  </Link>
                 </div>
 
                 <div className="border-t border-x-border py-2">
