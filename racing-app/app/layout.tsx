@@ -4,6 +4,9 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Redline - Street Racing Clips & Performance Tracking',
   description: 'Share your racing clips, track your 0-60 times, and compete on the leaderboards.',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({

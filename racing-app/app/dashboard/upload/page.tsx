@@ -104,76 +104,139 @@ export default function UploadPage() {
 
   const initializePage = async () => {
     setPageLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.push('/auth/login');
-      return;
-    }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/auth/login');
+        return;
+      }
 
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+      // Get or create user profile
+      let { data: profile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
 
-    setUserProfile(profile);
-
-    // Get user's channels and collections
-    let { data: channels } = await supabase
-      .from('channels')
-      .select(`id, name, collections (id, title)`)
-      .eq('creator_id', user.id);
-
-    // If no channel exists, create one
-    if (!channels || channels.length === 0) {
-      const { data: newChannel, error: channelError } = await supabase
-        .from('channels')
-        .insert({
-          name: profile?.username || user.email?.split('@')[0] || 'My Channel',
-          description: 'My racing channel',
-          creator_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (newChannel) {
-        // Create a default collection
-        const { data: newCollection } = await supabase
-          .from('collections')
+      // If no profile exists (OAuth user), create one
+      if (!profile) {
+        const username = user.user_metadata?.username || 
+                        user.user_metadata?.full_name || 
+                        user.email?.split('@')[0] || 
+                        'user';
+        
+        const { data: newProfile, error: profileError } = await supabase
+          .from('users')
           .insert({
-            channel_id: newChannel.id,
-            title: 'Posts',
-            description: 'My posts',
-            order_index: 0,
+            id: user.id,
+            email: user.email!,
+            username: username,
+            role: 'creator',
           })
           .select()
           .single();
-
-        channels = [{
-          ...newChannel,
-          collections: newCollection ? [newCollection] : []
-        }];
+        
+        if (!profileError) {
+          profile = newProfile;
+        }
       }
-    }
 
-    if (channels) {
-      const allCollections = channels.flatMap((ch: any) => 
-        ch.collections?.map((col: any) => ({
-          ...col,
-          channelName: ch.name,
-          channelId: ch.id,
-        })) || []
-      );
-      setCollections(allCollections);
-      
-      // Auto-select first collection
-      if (allCollections.length > 0) {
-        setFormData(prev => ({ ...prev, collection_id: allCollections[0].id }));
+      setUserProfile(profile);
+
+      // Get user's channels and collections
+      let { data: channels } = await supabase
+        .from('channels')
+        .select(`id, name, collections (id, title)`)
+        .eq('creator_id', user.id);
+
+      // If no channel exists, create one
+      if (!channels || channels.length === 0) {
+        const channelName = profile?.username || user.email?.split('@')[0] || 'My Channel';
+        
+        // Check if channel with this name already exists for this user
+        const { data: existingChannel } = await supabase
+          .from('channels')
+          .select('id, name, collections (id, title)')
+          .eq('creator_id', user.id)
+          .maybeSingle();
+
+        if (existingChannel) {
+          channels = [existingChannel];
+        } else {
+          const { data: newChannel, error: channelError } = await supabase
+            .from('channels')
+            .insert({
+              name: channelName,
+              description: 'My racing channel',
+              creator_id: user.id,
+            })
+            .select()
+            .single();
+
+          if (newChannel && !channelError) {
+            // Create a default collection
+            const { data: newCollection } = await supabase
+              .from('collections')
+              .insert({
+                channel_id: newChannel.id,
+                title: 'Posts',
+                description: 'My posts',
+                order_index: 0,
+              })
+              .select()
+              .single();
+
+            channels = [{
+              ...newChannel,
+              collections: newCollection ? [newCollection] : []
+            }];
+          }
+        }
       }
+
+      // Check if channels have collections, if not create one
+      if (channels && channels.length > 0) {
+        for (const channel of channels) {
+          if (!channel.collections || channel.collections.length === 0) {
+            const { data: newCollection } = await supabase
+              .from('collections')
+              .insert({
+                channel_id: channel.id,
+                title: 'Posts',
+                description: 'My posts',
+                order_index: 0,
+              })
+              .select()
+              .single();
+            
+            if (newCollection) {
+              channel.collections = [newCollection];
+            }
+          }
+        }
+      }
+
+      if (channels) {
+        const allCollections = channels.flatMap((ch: any) => 
+          ch.collections?.map((col: any) => ({
+            ...col,
+            channelName: ch.name,
+            channelId: ch.id,
+          })) || []
+        );
+        setCollections(allCollections);
+        
+        // Auto-select first collection
+        if (allCollections.length > 0) {
+          setFormData(prev => ({ ...prev, collection_id: allCollections[0].id }));
+        }
+      }
+    } catch (err) {
+      console.error('Init error:', err);
+      setError('Failed to initialize. Please refresh the page.');
+    } finally {
+      setPageLoading(false);
     }
-    
-    setPageLoading(false);
   };
 
   const updateForm = (field: keyof FormData, value: any) => {

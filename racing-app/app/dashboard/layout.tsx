@@ -16,13 +16,36 @@ export default async function DashboardLayout({
     redirect('/auth/login');
   }
 
-  const { data: profile } = await supabase
+  // Try to get existing profile
+  let { data: profile } = await supabase
     .from('users')
     .select('*')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
-  // Get user's subscribed channels with collections and clips
+  // If no profile exists (new OAuth user), create one
+  if (!profile) {
+    const username = user.user_metadata?.username || 
+                    user.user_metadata?.full_name || 
+                    user.user_metadata?.name ||
+                    user.email?.split('@')[0] || 
+                    'user';
+    
+    const { data: newProfile } = await supabase
+      .from('users')
+      .insert({
+        id: user.id,
+        email: user.email!,
+        username: username,
+        role: 'creator',
+      })
+      .select()
+      .single();
+    
+    profile = newProfile;
+  }
+
+  // Get all channels with collections and clips
   const { data: channels } = await supabase
     .from('channels')
     .select(`
@@ -50,11 +73,19 @@ export default async function DashboardLayout({
     })) || [],
   })) || [];
 
+  // Fallback user object if profile creation also failed
+  const userForHeader = profile || { 
+    id: user.id, 
+    email: user.email!, 
+    username: user.email!.split('@')[0], 
+    role: 'creator' 
+  };
+
   return (
     <div className="min-h-screen flex" style={{ background: '#15202b' }}>
-      <Sidebar channels={transformedChannels} userRole={profile?.role || 'viewer'} />
+      <Sidebar channels={transformedChannels} userRole={userForHeader.role || 'creator'} />
       <div className="flex-1 flex flex-col ml-[275px]">
-        <Header user={profile || { id: user.id, email: user.email!, username: user.email!.split('@')[0], role: 'viewer' }} />
+        <Header user={userForHeader} />
         <main className="flex-1 p-6 overflow-auto">
           {children}
         </main>
